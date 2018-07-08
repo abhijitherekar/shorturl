@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"strconv"
 )
@@ -33,6 +34,81 @@ func myhandle(w http.ResponseWriter, s string) {
 
 func NewPage() *Page {
 	return &Page{}
+}
+
+const (
+	BASE             = 62
+	DIGIT_OFFSET     = 48
+	LOWERCASE_OFFSET = 61
+	UPPERCASE_OFFSET = 55
+)
+
+func ord2char(ord int) (string, error) {
+	switch {
+	case ord < 10:
+		return string(ord + DIGIT_OFFSET), nil
+	case ord >= 10 && ord <= 35:
+		return string(ord + UPPERCASE_OFFSET), nil
+	case ord >= 36 && ord < 62:
+		return string(ord + LOWERCASE_OFFSET), nil
+	default:
+		return "", fmt.Errorf("%d is not a valid integer in the range of base %d", ord, BASE)
+	}
+}
+func char2ord(s string) (int, error) {
+	if matched, _ := regex.MatchString("[0-9]", s); matched {
+		return (int([]rune(s)[0]) - DIGIT_OFFSET), nil
+	}
+	if matched, _ := regex.MatchString("[a-z]", s); matched {
+		return (int([]rune(s)[0]) - 61), nil
+	}
+	if matched, _ := regex.MatchString("[A-Z]", s); matched {
+		return (int([]rune(s)[0]) - 55), nil
+	}
+	return -1, nil
+}
+func Encode(digits int) (string, error) {
+	if digits == 0 {
+		return "0", nil
+	}
+
+	str := ""
+	for digits >= 0 {
+		remainder := digits % 62
+		fmt.Println(remainder)
+		if s, err := ord2char(remainder); err != nil {
+			return "", err
+		} else {
+			str = s + str
+		}
+		fmt.Println("str:", str)
+		if digits == 0 {
+			break
+		}
+		digits = int(digits / 62)
+	}
+	return str, nil
+}
+
+func Decode(s string) int {
+	if s == "" {
+		return -1
+	}
+	fmt.Println(s)
+	pow := len(s) - 1
+	fmt.Println(pow)
+	sum := 0
+	num := 0
+	i := 0
+	for pow >= 0 {
+		num, _ = char2ord(string(s[i]))
+		fmt.Println("*** num:", num)
+		sum += num * int(math.Pow(62, float64(pow)))
+		fmt.Println(sum)
+		pow--
+		i++
+	}
+	return sum
 }
 
 func custhandle(fn func(http.ResponseWriter, string)) http.HandlerFunc {
