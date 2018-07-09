@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
+	regex "regexp"
 	"strconv"
 )
 
@@ -134,17 +135,20 @@ type storemap struct {
 func createhandle(s *storemap) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		url := r.URL.Path[len("/create/"):]
+		fmt.Println("IN create")
 		p1 := NewPage()
 		p1.Title = url
 		url = "http://" + url
 		fmt.Println("fetching url:", url)
 		if _, ok := s.s2lmap[url]; !ok {
+			fmt.Println("URL not present, create new")
 			s.l2smap[s.uin_id] = url
 			s.s2lmap[url] = s.uin_id
 			s.uin_id++
-			fmt.Fprintf(w, "Please, use the shortend url: http://localhost:8080/red/%d", s.uin_id-1)
+			fmt.Fprintf(w, "Please, use the shortend url: http://localhost:8000/red/%d", s.s2lmap[url])
 		} else {
-			fmt.Fprintf(w, "Please, use the shortend url: http://localhost:8080/red/%d", s.s2lmap[url])
+			fmt.Println("URL present")
+			fmt.Fprintf(w, "Please, use the shortend url: http://localhost:8000/red/%d", s.s2lmap[url])
 		}
 		//http.Redirect(w, r, string(url), 301)
 	}
@@ -153,10 +157,12 @@ func createhandle(s *storemap) http.Handler {
 
 func redirecthandle(s *storemap) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("\n in re-direct")
 		id := r.URL.Path[len("/red/"):]
 		newid, _ := strconv.Atoi(id)
+		fmt.Println("id:", newid)
 		url := s.l2smap[newid]
-		fmt.Println("fetching url:", url)
+		fmt.Println("Redirect fetching url:", url)
 		http.Redirect(w, r, string(url), 301)
 	}
 	return http.HandlerFunc(fn)
@@ -164,8 +170,8 @@ func redirecthandle(s *storemap) http.Handler {
 
 func main() {
 	store := &storemap{l2smap: make(map[int]string), s2lmap: make(map[string]int), uin_id: 0}
-	http.HandleFunc("/", custhandle(myhandle))
+	//http.HandleFunc("/", custhandle(myhandle))
 	http.Handle("/create/", createhandle(store))
 	http.Handle("/red/", redirecthandle(store))
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":8000", nil)
 }
